@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- Built without the mediator source generator, which test/Directory.Build.props otherwise applies. That makes it a
+         middleware package, which needs no generator (Sharp.Mediator.Validation is built the same way), and a handler
+         assembly that is missing it. -->
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <ApplyMediatorGenerator>false</ApplyMediatorGenerator>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../../src/Sharp.Mediator/Sharp.Mediator.csproj" />
+    </ItemGroup>
+
+</Project>

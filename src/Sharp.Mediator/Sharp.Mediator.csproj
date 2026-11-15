@@ -1,0 +1,54 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsAotCompatible>true</IsAotCompatible>
+        <Description>A mediator for .NET built for speed and Native AOT, with first-class request/response, events, streaming, and middleware. The dispatcher, middleware, and publishers, with the source generator bundled.</Description>
+        <PackageTags>mediator;mediatr;cqrs;dispatcher;middleware;source-generator;aot</PackageTags>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Sharp.Mediator.Tests" />
+    </ItemGroup>
+
+    <!-- Apply the generator to this project (no-op: core declares no handlers) and, more importantly,
+         make it a build dependency so its DLL exists for packaging. -->
+    <ItemGroup>
+        <ProjectReference Include="..\Sharp.Mediator.SourceGenerator\Sharp.Mediator.SourceGenerator.csproj"
+                          OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Update="Sharp.Mediator.targets" Visible="false" />
+    </ItemGroup>
+
+    <!-- Ship the generator inside this package's analyzer slot so consumers get it transitively, and beside it the
+         build asset that turns its interceptors on. The analyzer also reaches a project that gets this package through
+         another package or a project reference, which a build/ asset would not, so the asset goes in buildTransitive/
+         to reach the same projects. A pack target (not None+Pack items) so a missing DLL fails the pack loudly: silently
+         shipping without the generator would only surface when a consumer's AddMediator throws at runtime
+         ("No generated mediator registrar was found") — or worse, at their NativeAOT publish. NuGet imports only
+         the file named after the package ID from buildTransitive/, so the asset keeps that name. -->
+    <PropertyGroup>
+        <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackBuildAssets</TargetsForTfmSpecificContentInPackage>
+    </PropertyGroup>
+
+    <Target Name="PackBuildAssets">
+        <ItemGroup>
+            <_AnalyzerAsset Include="../Sharp.Mediator.SourceGenerator/bin/$(Configuration)/netstandard2.0/Sharp.Mediator.SourceGenerator.dll" />
+        </ItemGroup>
+        <Error Condition="!Exists('%(_AnalyzerAsset.Identity)')"
+               Text="Analyzer payload missing: %(_AnalyzerAsset.Identity). Build the solution first; a custom OutDir/BaseOutputPath breaks this relative path." />
+        <ItemGroup>
+            <TfmSpecificPackageFile Include="@(_AnalyzerAsset)" PackagePath="analyzers/dotnet/cs" />
+            <TfmSpecificPackageFile Include="$(MSBuildThisFileDirectory)Sharp.Mediator.targets" PackagePath="buildTransitive" />
+        </ItemGroup>
+    </Target>
+
+</Project>

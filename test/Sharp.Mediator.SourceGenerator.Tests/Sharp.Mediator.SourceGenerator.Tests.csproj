@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <!-- ReferenceOutputAssembly so the tests can instantiate MediatorGenerator directly;
+             the core reference keeps Sharp.Mediator on the TPA for the compile-assert harness. -->
+        <ProjectReference Include="../../src/Sharp.Mediator/Sharp.Mediator.csproj" />
+        <ProjectReference Include="../../src/Sharp.Mediator.SourceGenerator/Sharp.Mediator.SourceGenerator.csproj"
+                          ReferenceOutputAssembly="true"
+                          OutputItemType="Analyzer" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="Xunit" />
+    </ItemGroup>
+
+</Project>

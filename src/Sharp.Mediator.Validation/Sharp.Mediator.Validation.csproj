@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsAotCompatible>true</IsAotCompatible>
+        <Description>Pipeline middlewares that integrate Sharp.Validator into Sharp.Mediator: throws ValidationException or returns an Invalid response.</Description>
+        <PackageTags>mediator;validation;validator;middleware;pipeline</PackageTags>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="../Sharp.Mediator.Responses/Sharp.Mediator.Responses.csproj" />
+      <ProjectReference Include="../Sharp.Mediator/Sharp.Mediator.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Sharp.Validator" />
+    </ItemGroup>
+
+</Project>

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <ProjectReference Include="../Sharp.Mediator.Fixtures/Sharp.Mediator.Fixtures.csproj" />
+        <ProjectReference Include="../../src/Sharp.Mediator/Sharp.Mediator.csproj" />
+        <ProjectReference Include="../Sharp.Mediator.LibraryFixtures/Sharp.Mediator.LibraryFixtures.csproj" />
+        <ProjectReference Include="../Sharp.Mediator.NoGeneratorFixtures/Sharp.Mediator.NoGeneratorFixtures.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="Xunit" />
+    </ItemGroup>
+
+</Project>

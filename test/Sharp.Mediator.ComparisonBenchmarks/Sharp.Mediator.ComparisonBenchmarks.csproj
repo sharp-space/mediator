@@ -1,0 +1,170 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- Sharp.Mediator against Mediator (martinothamar) and MediatR on equal terms: the same generated messages for
+         each library, a reference-type response per request, and one lifetime for all three. Mediator scans referenced
+         assemblies and fixes its lifetime at compile time, so the comparisons are a compilation of their own, and
+         Sharp.Mediator.Benchmarks references neither library.
+         Set the MessageCount environment variable to measure another size, and MediatorLifetime=Scoped for the Scoped
+         lifetime. The defaults are 1000 messages of each kind and Singleton, which is Mediator's own default. -->
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <ServerGarbageCollection>true</ServerGarbageCollection>
+        <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+        <IsPackable>false</IsPackable>
+        <IsTestProject>false</IsTestProject>
+        <MessageCount Condition="'$(MessageCount)' == ''">1000</MessageCount>
+        <MediatorLifetime Condition="'$(MediatorLifetime)' == ''">Singleton</MediatorLifetime>
+        <DefineConstants Condition="'$(MediatorLifetime)' == 'Scoped'">$(DefineConstants);SCOPED_LIFETIME</DefineConstants>
+        <MessagesFile>$(BaseIntermediateOutputPath)Messages.$(MessageCount).g.cs</MessagesFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../../src/Sharp.Mediator/Sharp.Mediator.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="BenchmarkDotNet" />
+        <PackageReference Include="Mediator.Abstractions" />
+        <PackageReference Include="Mediator.SourceGenerator">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+        <!-- MediatR 12.5.0, the last release under Apache-2.0, which allows publishing the results. -->
+        <PackageReference Include="MediatR" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    </ItemGroup>
+
+    <UsingTask TaskName="WriteComparisonMessages" TaskFactory="RoslynCodeTaskFactory"
+               AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+        <ParameterGroup>
+            <Count ParameterType="System.Int32" Required="true" />
+            <OutputPath ParameterType="System.String" Required="true" />
+        </ParameterGroup>
+        <Task>
+            <Using Namespace="System" />
+            <Using Namespace="System.IO" />
+            <Using Namespace="System.Text" />
+            <Code Type="Fragment" Language="cs"><![CDATA[
+                // Each library gets the same application: Count requests with a response of their own, Count requests
+                // without one, and Count events with two handlers each. Only the interfaces and the handlers' return
+                // types differ, as each library's API requires.
+                Func<string, int, string> name = (kind, i) =>
+                    i == 0 ? "First" + kind : i == Count - 1 ? "Last" + kind : kind + i;
+
+                // Mixed traffic: evenly spaced request types, each through its own call site.
+                var size = Math.Min(Count, 64);
+                var step = Count / size;
+
+                Func<string, string, string, string, string, string> library =
+                    (ns, imports, request, command, @event) =>
+                {
+                    var source = new StringBuilder();
+                    source.Append("namespace Sharp.Mediator.ComparisonBenchmarks." + ns + "\n{\n    using " + imports + ";\n\n");
+                    for (var i = 0; i < Count; i++)
+                    {
+                        var message = name("Message", i);
+                        source.Append(request.Replace("{M}", message).Replace("{R}", message + "Response"));
+                        source.Append(command.Replace("{C}", name("Command", i)));
+                        source.Append(@event.Replace("{E}", name("Event", i)));
+                    }
+
+                    return source.ToString();
+                };
+
+                // secondName, when given, names a second method, which takes a mediator of type secondParameter and calls
+                // it as secondCall.
+                Func<string, string, string, string, string> rotation = (call, secondName, secondParameter, secondCall) =>
+                {
+                    var fields = new StringBuilder();
+                    var calls = new StringBuilder();
+                    var secondCalls = new StringBuilder();
+                    var picked = 0;
+                    for (var i = 0; i < Count && picked < size; i += step)
+                    {
+                        var message = name("Message", i);
+                        var field = "Rotated" + i;
+                        fields.Append("        private static readonly " + message + " " + field + " = new();\n");
+                        calls.Append("            hits += " + call.Replace("{F}", field) + ".GetAwaiter().GetResult() is null ? 0 : 1;\n");
+                        if (secondName != null)
+                            secondCalls.Append("            hits += " + secondCall.Replace("{M}", message).Replace("{R}", message + "Response").Replace("{F}", field) + ".GetAwaiter().GetResult() is null ? 0 : 1;\n");
+                        picked++;
+                    }
+
+                    Func<string, string, string> method = (signature, body) =>
+                        "        public static int " + signature + "\n        {\n            var hits = 0;\n" + body + "            return hits;\n        }\n";
+
+                    return "    public static class Rotation\n    {\n        public const int Size = " + size + ";\n" + fields
+                        + method("Interface(IMediator mediator)", calls.ToString())
+                        + (secondName != null ? method(secondName + "(" + secondParameter + " mediator)", secondCalls.ToString()) : "")
+                        + "    }\n}\n\n";
+                };
+
+                const string valueTaskRequest =
+                    "    public sealed record {R};\n" +
+                    "    public sealed record {M} : IRequest<{R}>;\n" +
+                    "    public sealed class {M}Handler : IRequestHandler<{M}, {R}>\n    {\n" +
+                    "        private static readonly {R} Response = new();\n" +
+                    "        public ValueTask<{R}> Handle({M} message, CancellationToken cancellationToken) => new(Response);\n    }\n";
+
+                var all = new StringBuilder();
+                all.Append(library("Sharp", "global::Sharp.Mediator", valueTaskRequest,
+                    "    public sealed record {C} : IRequest;\n" +
+                    "    public sealed class {C}Handler : IRequestHandler<{C}>\n    {\n" +
+                    "        public ValueTask Handle({C} message, CancellationToken cancellationToken) => ValueTask.CompletedTask;\n    }\n",
+                    "    public sealed record {E} : IEvent;\n" +
+                    "    public sealed class {E}Handler1 : IEventHandler<{E}>\n    {\n" +
+                    "        public ValueTask Handle({E} message, CancellationToken cancellationToken) => ValueTask.CompletedTask;\n    }\n" +
+                    "    public sealed class {E}Handler2 : IEventHandler<{E}>\n    {\n" +
+                    "        public ValueTask Handle({E} message, CancellationToken cancellationToken) => ValueTask.CompletedTask;\n    }\n"));
+                all.Append(rotation("mediator.Request({F})", null, null, null));
+
+                all.Append(library("Martin", "global::Mediator", valueTaskRequest,
+                    "    public sealed record {C} : ICommand;\n" +
+                    "    public sealed class {C}Handler : ICommandHandler<{C}>\n    {\n" +
+                    "        public ValueTask<Unit> Handle({C} command, CancellationToken cancellationToken) => default;\n    }\n",
+                    "    public sealed record {E} : INotification;\n" +
+                    "    public sealed class {E}Handler1 : INotificationHandler<{E}>\n    {\n" +
+                    "        public ValueTask Handle({E} notification, CancellationToken cancellationToken) => ValueTask.CompletedTask;\n    }\n" +
+                    "    public sealed class {E}Handler2 : INotificationHandler<{E}>\n    {\n" +
+                    "        public ValueTask Handle({E} notification, CancellationToken cancellationToken) => ValueTask.CompletedTask;\n    }\n"));
+                // Through Mediator's generated class, each call binds to the overload of its own message.
+                all.Append(rotation("mediator.Send({F})", "Concrete", "global::Mediator.Mediator", "mediator.Send({F})"));
+
+                // MediatR's handlers return Task, so a request's handler allocates the Task it completes, as an
+                // application's handler does.
+                all.Append(library("MediatR", "global::MediatR",
+                    "    public sealed record {R};\n" +
+                    "    public sealed record {M} : IRequest<{R}>;\n" +
+                    "    public sealed class {M}Handler : IRequestHandler<{M}, {R}>\n    {\n" +
+                    "        private static readonly {R} Response = new();\n" +
+                    "        public Task<{R}> Handle({M} request, CancellationToken cancellationToken) => Task.FromResult(Response);\n    }\n",
+                    "    public sealed record {C} : IRequest;\n" +
+                    "    public sealed class {C}Handler : IRequestHandler<{C}>\n    {\n" +
+                    "        public Task Handle({C} request, CancellationToken cancellationToken) => Task.CompletedTask;\n    }\n",
+                    "    public sealed record {E} : INotification;\n" +
+                    "    public sealed class {E}Handler1 : INotificationHandler<{E}>\n    {\n" +
+                    "        public Task Handle({E} notification, CancellationToken cancellationToken) => Task.CompletedTask;\n    }\n" +
+                    "    public sealed class {E}Handler2 : INotificationHandler<{E}>\n    {\n" +
+                    "        public Task Handle({E} notification, CancellationToken cancellationToken) => Task.CompletedTask;\n    }\n"));
+                all.Append(rotation("mediator.Send({F})", null, null, null));
+
+                Directory.CreateDirectory(Path.GetDirectoryName(OutputPath));
+                File.WriteAllText(OutputPath, all.ToString());
+            ]]></Code>
+        </Task>
+    </UsingTask>
+
+    <Target Name="WriteMessagesFile" Inputs="$(MSBuildProjectFullPath)" Outputs="$(MessagesFile)">
+        <WriteComparisonMessages Count="$(MessageCount)" OutputPath="$(MessagesFile)" />
+    </Target>
+
+    <Target Name="IncludeMessagesFile" BeforeTargets="BeforeCompile" DependsOnTargets="WriteMessagesFile">
+        <ItemGroup>
+            <Compile Include="$(MessagesFile)" />
+        </ItemGroup>
+    </Target>
+
+</Project>

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- Helpers that more than one test project uses. A helper only one test project uses stays in that project's own
+         Fixtures/ folder. It declares no handlers, so it is built without the mediator generator, which
+         test/Directory.Build.props otherwise applies. Sharp.Mediator.LibraryFixtures is the library side of the
+         multi-assembly scenario. -->
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <ApplyMediatorGenerator>false</ApplyMediatorGenerator>
+    </PropertyGroup>
+
+</Project>

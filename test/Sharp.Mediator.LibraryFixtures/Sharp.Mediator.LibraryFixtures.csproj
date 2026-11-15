@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- The library side of the multi-assembly scenario: the multi-assembly tests and the NativeAOT canary dispatch to
+         its handlers from another compilation, so what it declares is part of what they test. General test helpers
+         belong in Sharp.Mediator.Fixtures or a test project's own Fixtures/ folder, and anything added here also
+         compiles into the AOT canary. -->
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../../src/Sharp.Mediator/Sharp.Mediator.csproj" />
+        <!-- The application's generator closes the validation middleware over this assembly's public messages, but only
+             this assembly's generator can name its internal ones, so it references the package the NativeAOT canary
+             registers. -->
+        <ProjectReference Include="../../src/Sharp.Mediator.Validation/Sharp.Mediator.Validation.csproj" />
+        <ProjectReference Include="../Sharp.Mediator.NoGeneratorFixtures/Sharp.Mediator.NoGeneratorFixtures.csproj" />
+    </ItemGroup>
+
+</Project>

@@ -1,0 +1,10 @@
+{
+  "src/Sharp.Mediator/MediatorBuilder.Handlers.cs:EnsureModuleInitialized": {
+    "reason": "JIT coverage cannot execute the NativeAOT-only path; the native canary verifies it.",
+    "sha256": "f40dd5d690446d9ff43af2157a97fdde2538cd05dac76ac200eccf0037203ee0"
+  },
+  "src/Sharp.Mediator/MediatorBuilder.Middlewares.cs:EnsureRuntimeClosingAvailable": {
+    "reason": "JIT coverage cannot execute the NativeAOT-only path; the native canary verifies it.",
+    "sha256": "af005d737c0e00b71c860e2e558d5312fcc311844679743af847bc16978ae248"
+  }
+}

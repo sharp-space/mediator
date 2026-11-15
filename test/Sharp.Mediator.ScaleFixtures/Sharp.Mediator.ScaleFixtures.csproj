@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- Declares $(MessageCount) messages so the scale benchmarks can catch a cost that grows with the size of an
+         application. Its own assembly so the other benchmarks stay on a small app: it only loads when one of them uses
+         it. Set the MessageCount environment variable to measure another size. -->
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>Sharp.Mediator.ScaleFixtures</RootNamespace>
+        <MessageCount Condition="'$(MessageCount)' == ''">1000</MessageCount>
+        <MessagesFile>$(BaseIntermediateOutputPath)Messages.$(MessageCount).g.cs</MessagesFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../../src/Sharp.Mediator/Sharp.Mediator.csproj" />
+    </ItemGroup>
+
+    <UsingTask TaskName="WriteMessages" TaskFactory="RoslynCodeTaskFactory"
+               AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+        <ParameterGroup>
+            <Count ParameterType="System.Int32" Required="true" />
+            <OutputPath ParameterType="System.String" Required="true" />
+        </ParameterGroup>
+        <Task>
+            <Using Namespace="System.IO" />
+            <Using Namespace="System.Text" />
+            <Code Type="Fragment" Language="cs"><![CDATA[
+                var source = new StringBuilder("using Sharp.Mediator;\n\nnamespace Sharp.Mediator.ScaleFixtures;\n\n");
+                for (var i = 0; i < Count; i++)
+                {
+                    var name = i == 0 ? "FirstMessage" : i == Count - 1 ? "LastMessage" : "Message" + i;
+                    source.Append("public sealed record " + name + " : IRequest<int>;\n");
+                    source.Append("public sealed class " + name + "Handler : IRequestHandler<" + name + ", int>\n");
+                    source.Append("{\n    public ValueTask<int> Handle(" + name + " message, CancellationToken cancellationToken) => new(" + i + ");\n}\n");
+                }
+
+                Directory.CreateDirectory(Path.GetDirectoryName(OutputPath));
+                File.WriteAllText(OutputPath, source.ToString());
+            ]]></Code>
+        </Task>
+    </UsingTask>
+
+    <Target Name="WriteMessagesFile" Inputs="$(MSBuildProjectFullPath)" Outputs="$(MessagesFile)">
+        <WriteMessages Count="$(MessageCount)" OutputPath="$(MessagesFile)" />
+    </Target>
+
+    <Target Name="IncludeMessagesFile" BeforeTargets="BeforeCompile" DependsOnTargets="WriteMessagesFile">
+        <ItemGroup>
+            <Compile Include="$(MessagesFile)" />
+        </ItemGroup>
+    </Target>
+
+</Project>

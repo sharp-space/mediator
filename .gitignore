@@ -1,0 +1,75 @@
+# .NET build output
+bin/
+obj/
+[Bb]in/
+[Oo]bj/
+out/
+publish/
+[Dd]ebug/
+[Rr]elease/
+*.binlog
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Test output
+[Tt]est[Rr]esult*/
+*.trx
+*.coverage
+*.coveragexml
+coverage*.xml
+coverage*.info
+coverage*.json
+*.opencover.xml
+
+# Rider / JetBrains
+.idea/
+*.DotSettings
+*.DotSettings.user
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.swp
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+.directory
+
+# Misc
+*.log
+*.tmp
+*.bak
+
+# Local agent/tooling state
+.claude/
+.tools/
+
+!test/coverage-exclusions.json
+
+__pycache__/
+
+*.pyc

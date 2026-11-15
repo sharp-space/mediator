@@ -1,0 +1,31 @@
+<Project>
+    <PropertyGroup>
+        <Version>1.0.0</Version>
+        <Authors>Sharp</Authors>
+        <Company>Sharp</Company>
+        <Copyright>© 2026 Sharp</Copyright>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <!-- Shared NuGet metadata (PackageTags are per-package, in each csproj). -->
+    <PropertyGroup>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <RepositoryUrl>https://github.com/sharp-space/mediator</RepositoryUrl>
+        <PackageProjectUrl>https://github.com/sharp-space/mediator</PackageProjectUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    </PropertyGroup>
+
+    <!-- SourceLink: the .NET SDK wires Microsoft.SourceLink.GitHub automatically for git repositories;
+         these make the published packages debuggable and the CI builds deterministic. -->
+    <PropertyGroup>
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+        <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    </PropertyGroup>
+
+    <ItemGroup Condition="'$(IsPackable)' != 'false'">
+        <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
+    </ItemGroup>
+</Project>

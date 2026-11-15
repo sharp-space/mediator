@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsAotCompatible>true</IsAotCompatible>
+        <Description>Response/Response&lt;T&gt; envelopes for Sharp.Mediator with success/error/validation/not-found/auth status, plus Id/Page/Cursor specializations.</Description>
+        <PackageTags>mediator;response;envelope;result;status;cqrs</PackageTags>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Sharp.Validator.Result" />
+    </ItemGroup>
+
+</Project>

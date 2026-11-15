@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../../src/Sharp.Mediator.HttpResults/Sharp.Mediator.HttpResults.csproj" />
+        <ProjectReference Include="../../src/Sharp.Mediator.Responses/Sharp.Mediator.Responses.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="Xunit" />
+    </ItemGroup>
+
+</Project>

@@ -1,0 +1,30 @@
+<Solution>
+  <Folder Name="/Core/">
+    <Project Path="src/Sharp.Mediator.HttpResults/Sharp.Mediator.HttpResults.csproj" />
+    <Project Path="src/Sharp.Mediator.Responses/Sharp.Mediator.Responses.csproj" />
+    <Project Path="src/Sharp.Mediator.Validation/Sharp.Mediator.Validation.csproj" />
+    <Project Path="src/Sharp.Mediator/Sharp.Mediator.csproj" />
+    <Project Path="src/Sharp.Mediator.SourceGenerator/Sharp.Mediator.SourceGenerator.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="test/Sharp.Mediator.AotTests/Sharp.Mediator.AotTests.csproj" />
+    <Project Path="test/Sharp.Mediator.MultiAssemblyTests/Sharp.Mediator.MultiAssemblyTests.csproj" />
+  </Folder>
+  <Folder Name="/Tests/Benchmarks/">
+    <Project Path="test/Sharp.Mediator.Benchmarks/Sharp.Mediator.Benchmarks.csproj" />
+    <Project Path="test/Sharp.Mediator.ComparisonBenchmarks/Sharp.Mediator.ComparisonBenchmarks.csproj" />
+  </Folder>
+  <Folder Name="/Tests/Fixtures/">
+    <Project Path="test/Sharp.Mediator.Fixtures/Sharp.Mediator.Fixtures.csproj" />
+    <Project Path="test/Sharp.Mediator.LibraryFixtures/Sharp.Mediator.LibraryFixtures.csproj" />
+    <Project Path="test/Sharp.Mediator.NoGeneratorFixtures/Sharp.Mediator.NoGeneratorFixtures.csproj" />
+    <Project Path="test/Sharp.Mediator.ScaleFixtures/Sharp.Mediator.ScaleFixtures.csproj" />
+  </Folder>
+  <Folder Name="/Tests/Packages/">
+    <Project Path="test/Sharp.Mediator.HttpResults.Tests/Sharp.Mediator.HttpResults.Tests.csproj" />
+    <Project Path="test/Sharp.Mediator.Responses.Tests/Sharp.Mediator.Responses.Tests.csproj" />
+    <Project Path="test/Sharp.Mediator.SourceGenerator.Tests/Sharp.Mediator.SourceGenerator.Tests.csproj" />
+    <Project Path="test/Sharp.Mediator.Tests/Sharp.Mediator.Tests.csproj" />
+    <Project Path="test/Sharp.Mediator.Validation.Tests/Sharp.Mediator.Validation.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,18 @@
+{
+  "platformOptions": {
+    "Coverlet": {
+      "format": "cobertura,json",
+      "include": "[Sharp.Mediator]*,[Sharp.Mediator.Responses]*,[Sharp.Mediator.Validation]*,[Sharp.Mediator.HttpResults]*,[Sharp.Mediator.SourceGenerator]*",
+      "excludeByAttribute": "GeneratedCodeAttribute,ExcludeFromCodeCoverageAttribute",
+      "excludeByFile": "**/*.g.cs",
+      "singleHit": false,
+      "useSourceLink": false,
+      "includeTestAssembly": false,
+      "skipAutoProps": true
+    },
+    "resultDirectory": "__RESULTS_DIRECTORY__"
+  },
+  "commandLineOptions": {
+    "report-trx": true
+  }
+}

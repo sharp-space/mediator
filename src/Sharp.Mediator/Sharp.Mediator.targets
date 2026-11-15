@@ -1,0 +1,24 @@
+<Project>
+    <!-- Ships as buildTransitive/Sharp.Mediator.targets in the Sharp.Mediator package. It lets the bundled generator
+         intercept mediator calls, so a consumer has nothing to configure. buildTransitive, because the generator reaches
+         every project that gets the package, directly or through a package or project that references it, and a build
+         asset in build/ reaches only direct references. A .targets file rather than .props, because a project's own
+         SharpMediatorInterceptors has to be visible here. -->
+    <PropertyGroup Condition="'$(SharpMediatorInterceptors)' != 'false'">
+        <InterceptorsNamespaces>$(InterceptorsNamespaces);Sharp.Mediator.Generated.Interceptors</InterceptorsNamespaces>
+    </PropertyGroup>
+
+    <!-- MSBuild recompiles a project when an input file changes, and the compiler takes this list as a property, so on
+         its own a switch flipped on the command line would leave the old binaries. Made compiler-visible, the list is also
+         written to the generated .editorconfig, an input file, so the project recompiles whenever the list changes. -->
+    <ItemGroup>
+        <CompilerVisibleProperty Include="InterceptorsNamespaces" />
+    </ItemGroup>
+
+    <!-- A build that skips analyzers would drop the declarations they report as errors without failing, so the generator
+         reports those diagnostics itself there. It decides from the two properties the SDK decides from. -->
+    <ItemGroup>
+        <CompilerVisibleProperty Include="RunAnalyzers" />
+        <CompilerVisibleProperty Include="RunAnalyzersDuringBuild" />
+    </ItemGroup>
+</Project>

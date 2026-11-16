@@ -144,16 +144,30 @@ public sealed class MediatorGenerator : IIncrementalGenerator
             });
     }
 
-    // The SDK's rule for skipping analyzers: RunAnalyzers decides when it is set, RunAnalyzersDuringBuild otherwise.
-    // Both reach the generator through Sharp.Mediator.targets; a property that is not set arrives empty.
+    // The SDK's rule for skipping analyzers, from _ComputeSkipAnalyzers in Microsoft.Managed.Core.targets, and it has to
+    // follow that target when the SDK changes it. RunAnalyzers decides when it is set, RunAnalyzersDuringBuild otherwise.
+    // Where neither skips them, a build Visual Studio starts to debug or run tests does, unless warnings are errors or
+    // OptimizeImplicitlyTriggeredBuild decides. The properties reach the generator through Sharp.Mediator.targets, a
+    // property that is not set arrives empty, and MSBuild compares them ignoring case.
     private static bool AnalyzersSkipped(AnalyzerConfigOptions options)
     {
-        var runAnalyzers = options.TryGetValue("build_property.RunAnalyzers", out var value) ? value : "";
-        if (runAnalyzers.Length != 0) return string.Equals(runAnalyzers, "false", StringComparison.OrdinalIgnoreCase);
+        var runAnalyzers = Property(options, "RunAnalyzers");
+        if (IsFalse(runAnalyzers) || (runAnalyzers.Length == 0 && IsFalse(Property(options, "RunAnalyzersDuringBuild"))))
+            return true;
 
-        return options.TryGetValue("build_property.RunAnalyzersDuringBuild", out var duringBuild) &&
-            string.Equals(duringBuild, "false", StringComparison.OrdinalIgnoreCase);
+        var optimize = Property(options, "OptimizeImplicitlyTriggeredBuild");
+        return IsTrue(Property(options, "IsImplicitlyTriggeredBuild")) &&
+            IsTrue(Property(options, "UsingMicrosoftNETSdk")) &&
+            !IsFalse(optimize) &&
+            (!IsTrue(Property(options, "TreatWarningsAsErrors")) || IsTrue(optimize));
     }
+
+    private static string Property(AnalyzerConfigOptions options, string name) =>
+        options.TryGetValue("build_property." + name, out var value) ? value : "";
+
+    private static bool IsTrue(string value) => string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsFalse(string value) => string.Equals(value, "false", StringComparison.OrdinalIgnoreCase);
 
     private static bool ConsumesRuntime(Compilation compilation) =>
         compilation.GetTypeByMetadataName("Sharp.Mediator.Bindings.HandlerRegistry") is { } registry &&

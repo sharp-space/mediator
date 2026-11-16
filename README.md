@@ -820,9 +820,8 @@ measures a publish by how many handlers its event has, and several events publis
 The bundled analyzers report `SMD`-prefixed diagnostics. Each one has a page with its cause, its fix, and how
 to suppress it: [diagnostics](https://github.com/sharp-space/mediator/blob/main/doc/diagnostics/README.md). A build
 that skips analyzers, with `RunAnalyzers` or `RunAnalyzersDuringBuild` set to `false`, gets the same diagnostics from
-the source generator, so a declaration it leaves out for an error still fails the build. The builds Visual Studio starts
-to debug or run tests skip analyzers on their own unless warnings are errors, and they do not get them; the editor
-still shows them.
+the source generator, so a declaration it leaves out for an error still fails the build. So do the builds Visual Studio
+starts to debug or run tests, which skip analyzers on their own unless warnings are errors.
 
 ## Contributing
 

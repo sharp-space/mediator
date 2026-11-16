@@ -106,21 +106,42 @@ public sealed class AnalyzerSeparationTests
         bool reports
     )
     {
-        var properties = new Dictionary<string, string>();
-        if (runAnalyzers is not null) properties["build_property.RunAnalyzers"] = runAnalyzers;
-        if (runAnalyzersDuringBuild is not null) properties["build_property.RunAnalyzersDuringBuild"] = runAnalyzersDuringBuild;
+        AssertGeneratorReports(
+            reports, ("RunAnalyzers", runAnalyzers), ("RunAnalyzersDuringBuild", runAnalyzersDuringBuild));
+    }
 
-        var diagnostics = RunGenerator(InvalidHandler, buildProperties: properties).Result.Diagnostics;
-        if (!reports)
-        {
-            Assert.Empty(diagnostics);
-            return;
-        }
-
-        var diagnostic = Assert.Single(diagnostics);
-        Assert.Equal("SMD001", diagnostic.Id);
-        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
-        Assert.Equal("Handler", diagnostic.Location.SourceTree!.GetText().ToString(diagnostic.Location.SourceSpan));
+    [Theory]
+    [InlineData(null, "true", "true", null, null, true)]
+    [InlineData(null, "True", "TRUE", "", "false", true)]
+    [InlineData(null, "true", "true", null, "true", false)]
+    [InlineData(null, "true", "true", "true", "true", true)]
+    [InlineData(null, "true", "true", "false", null, false)]
+    [InlineData(null, "true", "true", "False", "true", false)]
+    [InlineData(null, "false", "true", null, null, false)]
+    [InlineData(null, null, "true", null, null, false)]
+    [InlineData(null, "true", null, null, null, false)]
+    [InlineData("true", "true", "true", null, null, true)]
+    [InlineData("true", "true", "true", null, "true", false)]
+    // The builds Visual Studio starts to debug or run tests skip analyzers by a third rule of the SDK's, so the generator
+    // reports their diagnostics there too: in an SDK-style project whose build is implicitly triggered, unless
+    // OptimizeImplicitlyTriggeredBuild is false, or warnings are errors and it is not true. The rule applies when
+    // RunAnalyzers is true as well, because the SDK checks it only where the first two rules skip nothing.
+    public void Generator_ReportsTheAnalyzerDiagnostics_WhenVisualStudioSkipsAnalyzers(
+        string? runAnalyzers,
+        string? isImplicitlyTriggeredBuild,
+        string? usingMicrosoftNetSdk,
+        string? optimizeImplicitlyTriggeredBuild,
+        string? treatWarningsAsErrors,
+        bool reports
+    )
+    {
+        AssertGeneratorReports(
+            reports,
+            ("RunAnalyzers", runAnalyzers),
+            ("IsImplicitlyTriggeredBuild", isImplicitlyTriggeredBuild),
+            ("UsingMicrosoftNETSdk", usingMicrosoftNetSdk),
+            ("OptimizeImplicitlyTriggeredBuild", optimizeImplicitlyTriggeredBuild),
+            ("TreatWarningsAsErrors", treatWarningsAsErrors));
     }
 
     [Fact]
@@ -153,6 +174,25 @@ public sealed class AnalyzerSeparationTests
         driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out var diagnostics);
         if (configured == ReportDiagnostic.Suppress) Assert.Empty(diagnostics);
         else Assert.Equal(DiagnosticSeverity.Warning, Assert.Single(diagnostics).Severity);
+    }
+
+    private static void AssertGeneratorReports(bool reports, params (string Name, string? Value)[] buildProperties)
+    {
+        var properties = new Dictionary<string, string>();
+        foreach (var (name, value) in buildProperties)
+            if (value is not null) properties["build_property." + name] = value;
+
+        var diagnostics = RunGenerator(InvalidHandler, buildProperties: properties).Result.Diagnostics;
+        if (!reports)
+        {
+            Assert.Empty(diagnostics);
+            return;
+        }
+
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.Equal("SMD001", diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Equal("Handler", diagnostic.Location.SourceTree!.GetText().ToString(diagnostic.Location.SourceSpan));
     }
 
     private static CSharpCompilation Compile(string source) => CSharpCompilation.Create(

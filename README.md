@@ -4,17 +4,17 @@ A mediator for .NET built for speed and Native AOT, with first-class request/res
 middleware.
 
 ```csharp
-public sealed record GetGreeting(string Name) : IRequest<string>;
+public record GetGreeting(string Name) : IRequest<string>;
 
-public sealed class GetGreetingHandler : IRequestHandler<GetGreeting, string>
+public class GetGreetingHandler : IRequestHandler<GetGreeting, string>
 {
     public ValueTask<string> Handle(GetGreeting message, CancellationToken cancellationToken) =>
         ValueTask.FromResult($"Hello, {message.Name}!");
 }
 
-public sealed record UserRegistered(Guid Id) : IEvent;
+public record UserRegistered(Guid Id) : IEvent;
 
-public sealed class SendWelcomeEmail : IEventHandler<UserRegistered>
+public class SendWelcomeEmail : IEventHandler<UserRegistered>
 {
     public ValueTask Handle(UserRegistered message, CancellationToken cancellationToken) => ValueTask.CompletedTask;
 }
@@ -98,9 +98,9 @@ var reply = await mediator.Request(new Ping("world"));
 Console.WriteLine(reply); // hello, world
 
 // A request and its handler.
-public sealed record Ping(string Name) : IRequest<string>;
+public record Ping(string Name) : IRequest<string>;
 
-public sealed class PingHandler : IRequestHandler<Ping, string>
+public class PingHandler : IRequestHandler<Ping, string>
 {
     public ValueTask<string> Handle(Ping message, CancellationToken cancellationToken) =>
         ValueTask.FromResult($"hello, {message.Name}");
@@ -119,9 +119,9 @@ handler returns a value.
 ### Send a request
 
 ```csharp
-public sealed record Save(string Path) : IRequest;
+public record Save(string Path) : IRequest;
 
-public sealed class SaveHandler : IRequestHandler<Save>
+public class SaveHandler : IRequestHandler<Save>
 {
     public ValueTask Handle(Save message, CancellationToken cancellationToken)
     {
@@ -150,9 +150,9 @@ returns nothing.
 ### Publish an event
 
 ```csharp
-public sealed record UserRegistered(Guid Id) : IEvent;
+public record UserRegistered(Guid Id) : IEvent;
 
-public sealed class SendWelcomeEmail : IEventHandler<UserRegistered>
+public class SendWelcomeEmail : IEventHandler<UserRegistered>
 {
     public ValueTask Handle(UserRegistered message, CancellationToken cancellationToken)
     {
@@ -173,7 +173,7 @@ public interface IAuditable : IEvent;
 
 public abstract record OrderEvent(Guid OrderId) : IEvent;
 
-public sealed record OrderPlaced(Guid OrderId) : OrderEvent(OrderId), IAuditable;
+public record OrderPlaced(Guid OrderId) : OrderEvent(OrderId), IAuditable;
 
 // Runs the handlers of OrderPlaced, then OrderEvent, then IAuditable, once each.
 await mediator.Publish(new OrderPlaced(orderId));
@@ -197,9 +197,9 @@ of its own and honors cancellation.
 ### Stream a response
 
 ```csharp
-public sealed record TailLog(string Path) : IStreamRequest<string>;
+public record TailLog(string Path) : IStreamRequest<string>;
 
-public sealed class TailLogHandler : IStreamRequestHandler<TailLog, string>
+public class TailLogHandler : IStreamRequestHandler<TailLog, string>
 {
     public async IAsyncEnumerable<string> Handle(
         TailLog message, [EnumeratorCancellation] CancellationToken cancellationToken)
@@ -227,8 +227,8 @@ one of those can depend on just that half.
 ### Depend on one half of the mediator
 
 ```csharp
-public sealed class CheckoutEndpoint(IRequester requester) { /* ... */ }
-public sealed class OrderProjection(IPublisher publisher) { /* ... */ }
+public class CheckoutEndpoint(IRequester requester) { /* ... */ }
+public class OrderProjection(IPublisher publisher) { /* ... */ }
 ```
 
 In one scope, `IMediator`, `IRequester`, and `IPublisher` resolve to the same instance. `IPublisher` is what you call
@@ -258,7 +258,7 @@ shape, such as `IMiddleware<Ping>` for a `Ping : IRequest<int>`, is reported as 
 
 ```csharp
 // For void requests and events
-public sealed class LoggingMiddleware<TMessage>(ILogger<LoggingMiddleware<TMessage>> log)
+public class LoggingMiddleware<TMessage>(ILogger<LoggingMiddleware<TMessage>> log)
     : IMiddleware<TMessage> where TMessage : IMessage
 {
     public async ValueTask Handle(TMessage message, MessageHandle<TMessage> next, CancellationToken cancellationToken)
@@ -270,7 +270,7 @@ public sealed class LoggingMiddleware<TMessage>(ILogger<LoggingMiddleware<TMessa
 }
 
 // For requests that return a response
-public sealed class CacheMiddleware<TMessage, TResponse>(IMemoryCache cache)
+public class CacheMiddleware<TMessage, TResponse>(IMemoryCache cache)
     : IMiddleware<TMessage, TResponse> where TMessage : IMessage<TResponse>
 {
     public async ValueTask<TResponse> Handle(
@@ -317,7 +317,7 @@ with the generator, and closes it at build time over the messages that assembly 
 Native AOT-safe across assemblies:
 
 ```csharp
-public sealed class AuditMiddleware<TMessage, TResponse>(IAuditLog log)
+public class AuditMiddleware<TMessage, TResponse>(IAuditLog log)
     : IMiddleware<TMessage, TResponse> where TMessage : IMessage<TResponse>
 {
     public async ValueTask<TResponse> Handle(
@@ -345,7 +345,7 @@ only for a registered middleware. One the application never registers costs only
 Stream requests use `IStreamMiddleware<TRequest, TResponse>`, registered with `AddMiddleware` like the others:
 
 ```csharp
-public sealed class StreamLoggingMiddleware<TRequest, TResponse>
+public class StreamLoggingMiddleware<TRequest, TResponse>
     : IStreamMiddleware<TRequest, TResponse> where TRequest : IStreamRequest<TResponse>
 {
     public async IAsyncEnumerable<TResponse> Handle(
@@ -405,7 +405,7 @@ across all the types it is, in level order. Each executor already wraps its hand
 publisher only decides when each one runs:
 
 ```csharp
-public sealed class FaultTolerantPublisher(ILogger<FaultTolerantPublisher> log) : IEventPublisher
+public class FaultTolerantPublisher(ILogger<FaultTolerantPublisher> log) : IEventPublisher
 {
     public async ValueTask Publish(
         IReadOnlyList<EventHandlerExecutor> executors, IEvent message, CancellationToken cancellationToken)
@@ -534,9 +534,9 @@ A `Response` envelope lets a handler return success, a domain error, validation 
 without throwing.
 
 ```csharp
-public sealed record CreateUser(string Email) : IRequest<Response<UserId>>;
+public record CreateUser(string Email) : IRequest<Response<UserId>>;
 
-public sealed class CreateUserHandler : IRequestHandler<CreateUser, Response<UserId>>
+public class CreateUserHandler : IRequestHandler<CreateUser, Response<UserId>>
 {
     public ValueTask<Response<UserId>> Handle(CreateUser command, CancellationToken cancellationToken)
     {
@@ -681,7 +681,7 @@ These behaviors differ:
 - Handlers spread across several assemblies are first-class, as described under Handlers in multiple assemblies;
   MediatR relies on scanning assemblies with reflection at run time.
 - Open generic handlers are not supported, because generated code needs every closed message at build time. Make the
-  generic handler abstract and derive one handler for each message: `sealed class IntBoxHandler : BoxHandler<int>;`.
+  generic handler abstract and derive one handler for each message: `class IntBoxHandler : BoxHandler<int>;`.
 
 ## Native AOT and trimming
 
@@ -767,6 +767,18 @@ numbers.
   walking its base types if it inherits its handler, and later dispatches find the route directly.
   `Request<TResponse>(message)` does not box the `ValueTask<T>`; the `object` return type boxes or wraps the result as
   the signature requires.
+
+### Seal message classes
+
+Declare request and event classes `sealed`, as the benchmarks above do. An intercepted call takes the cached route only
+when the message is exactly its static type, and it checks that with one type comparison per call unless the class is
+sealed. An unsealed message dispatches the same way and pays only that comparison. Under Native AOT, the compiler drops
+the comparison for any class that nothing derives from, sealed or not. Sealing handlers and middleware makes no
+difference to the mediator.
+
+```csharp
+public sealed record GetGreeting(string Name) : IRequest<string>;
+```
 
 ### Turn off call interception
 

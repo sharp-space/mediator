@@ -68,18 +68,22 @@ require "$core_pkg" "lib/net10.0/Sharp.Mediator.xml"
 require "$core_pkg" "analyzers/dotnet/cs/Sharp.Mediator.SourceGenerator.dll"
 require "$core_pkg" "buildTransitive/Sharp.Mediator.targets"
 require "$core_pkg" "README.md"
+require "$core_pkg" "icon.png"
 
 require "$responses_pkg" "lib/net10.0/Sharp.Mediator.Responses.dll"
 require "$responses_pkg" "lib/net10.0/Sharp.Mediator.Responses.xml"
 require "$responses_pkg" "README.md"
+require "$responses_pkg" "icon.png"
 
 require "$validation_pkg" "lib/net10.0/Sharp.Mediator.Validation.dll"
 require "$validation_pkg" "lib/net10.0/Sharp.Mediator.Validation.xml"
 require "$validation_pkg" "README.md"
+require "$validation_pkg" "icon.png"
 
 require "$httpresults_pkg" "lib/net10.0/Sharp.Mediator.HttpResults.dll"
 require "$httpresults_pkg" "lib/net10.0/Sharp.Mediator.HttpResults.xml"
 require "$httpresults_pkg" "README.md"
+require "$httpresults_pkg" "icon.png"
 
 # Symbol packages must also be unique for all four.
 find_exact_package "Sharp.Mediator" "symbols" >/dev/null

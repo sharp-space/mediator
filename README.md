@@ -785,11 +785,11 @@ numbers.
 - The bundled generator intercepts the generic calls on `IMediator`, so they skip generic virtual dispatch, and a call
   whose message type is known at compile time can be inlined into its caller. Interception is on in every project that
   gets the package, directly or through a project reference or another package, such as a web project over an
-  application layer, and compiles C# 11 or later. A call is left as written when it passes the message of an inferred
-  call by name or as an interface, an abstract class, or a struct, passes a publisher, or sits inside an expression
-  tree, such as a Moq setup, which then still names the mediator's own method. Any other `IMediator` implementation,
-  such as a test double, still receives the original call, and a message that is not exactly its static type takes the
-  same route as without interception.
+  application layer. A call is left as written when it passes the message of an inferred call by name or as an
+  interface, an abstract class, or a struct, passes a publisher, or sits inside an expression tree, such as a Moq setup,
+  which then still names the mediator's own method. Any other `IMediator` implementation, such as a test double, still
+  receives the original call, and a message that is not exactly its static type takes the same route as without
+  interception.
 - The interface-typed `Request<TResponse>(message)`, and `Request(object)`, `Publish(object)`, and
   `RequestStream(object)`, add one lookup by runtime type. The first dispatch of a runtime type creates its route,
   walking its base types if it inherits its handler, and later dispatches find the route directly.

@@ -71,11 +71,8 @@ dotnet add package Sharp.Mediator.Validation    # optional
 dotnet add package Sharp.Mediator.HttpResults   # optional, for ASP.NET Core
 ```
 
-Requires .NET 10 or later. Handlers must be written in C#, because the bundled source generator registers them.
-Package versions follow Semantic Versioning independently of .NET releases, starting at 1.0.0. Patch releases fix
-bugs; minor releases add backward-compatible features; major releases introduce breaking changes or raise minimum
-SDK, compiler, or runtime requirements. All packages in this repository share a version; Validator, Mediator, and
-Messenger release independently. The minimum supported runtime remains .NET 10. Changes are listed in the
+Requires .NET 10 or later. Versions follow Semantic Versioning, and raising the minimum SDK, compiler, or runtime is a
+major release. All packages in this repository share a version. Changes are listed in the
 [release notes](https://github.com/sharp-space/mediator/releases).
 
 ## Quick start

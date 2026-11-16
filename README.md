@@ -669,7 +669,7 @@ services nor invokes a forbid scheme.
 
 ## Coming from MediatR
 
-Called through `IMediator`, a warm request runs about 30 to 50 times faster than in MediatR 12.5.0 and allocates
+Called through `IMediator`, a warm request runs about 30 to 40 times faster than in MediatR 12.5.0 and allocates
 nothing (see Performance).
 
 | MediatR | Sharp.Mediator |

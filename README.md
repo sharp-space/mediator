@@ -46,7 +46,9 @@ await mediator.Publish(new UserRegistered(Guid.NewGuid()));
   runtime scanning.
 - **Native AOT- and trim-safe.** The bundled source generator does at build time what would otherwise need runtime
   reflection. The packages target .NET 10 and are annotated for nullable reference types.
-- **Companion packages.** Response envelopes, Sharp.Validator integration, and Minimal API results.
+- **Companion packages.** Response envelopes, validation, and Minimal API results.
+- **Works with [Sharp.Validator](https://github.com/sharp-space/validator).** `Sharp.Mediator.Validation` runs a
+  message's validators before its handler, and can return the failures as a response instead of throwing.
 
 ## Packages
 
@@ -138,6 +140,14 @@ public class SaveHandler : IRequestHandler<Save>
     }
 }
 
+public record Ping(string Name) : IRequest<string>;
+
+public class PingHandler : IRequestHandler<Ping, string>
+{
+    public ValueTask<string> Handle(Ping message, CancellationToken cancellationToken) =>
+        ValueTask.FromResult($"hello, {message.Name}");
+}
+
 await mediator.Request(new Save("/tmp/a"));          // typed, no response
 await mediator.Request<Ping, string>(new Ping("x")); // typed, with a response
 await mediator.Request(new Ping("x"));               // by interface: the response type is inferred, nothing is boxed
@@ -193,9 +203,9 @@ outward, then the interfaces by full name. `Publish(placed)`, `Publish<OrderEven
 `Publish((object) placed)` all reach the same handlers, so publish an event once rather than once for each type. A
 handler for `IEvent` itself receives every event.
 
-> **Note:** An event without a handler publishes to none, whether no assembly declares a handler for any type it is or
-> none of the declared ones is registered: the default publisher does nothing, and any other publisher receives the
-> publish with no handlers. `Publish(object)` throws `ArgumentException` for an object that is not an event.
+> **Note:** Publishing an event that no registered handler handles is not an error: the default publisher does nothing,
+> and any other publisher receives the publish with no handlers. `Publish(object)` throws `ArgumentException` for an
+> object that is not an event.
 
 ## Stream requests
 
@@ -223,9 +233,9 @@ await foreach (var line in mediator.RequestStream(new TailLog("/var/log/app.log"
 
 `RequestStream` returns the handler's stream without buffering it. When the call's token can be canceled, the
 handler's enumerator receives it too, as with `WithCancellation`, so a handler may return a stream that observes only
-the token of its enumerator, such as EF Core's `AsAsyncEnumerable()`. A caller that enumerates with a different token
-cancels the stream through either. Passing the token on takes one small object per call; with no token, `RequestStream`
-returns the handler's stream itself.
+the token of its enumerator, such as EF Core's `AsAsyncEnumerable()`. If the caller also passes another token to
+`WithCancellation`, canceling either one stops the stream. Passing the token on takes one small object per call; with no
+token, `RequestStream` returns the handler's stream itself.
 
 ## `IRequester` and `IPublisher`
 
@@ -298,15 +308,15 @@ public class CacheMiddleware<TMessage, TResponse>(IMemoryCache cache)
 
 ```csharp
 services.AddMediator(builder => builder
-    .AddMiddleware(typeof(LoggingMiddleware<>))         // open generic
-    .AddMiddleware<CacheMiddleware<GetUser, User>>());  // closed
+    .AddMiddleware(typeof(LoggingMiddleware<>))                   // open generic
+    .AddMiddleware<CacheMiddleware<GetUser, Response<User>>>());  // closed
 ```
 
 Middleware runs in registration order: the first registered wraps the second, which wraps the third, which wraps the
 handler.
 
-- A closed middleware registers every closed `IMiddleware<>` and `IMiddleware<,>` interface it implements, at run
-  time, from any assembly, and safely under trimming and Native AOT.
+- A closed middleware registers every closed middleware interface it implements, `IStreamMiddleware<,>` included, at
+  run time, from any assembly, and safely under trimming and Native AOT.
 - An open-generic middleware is closed over each message it applies to by the source generator, with full constraint
   checking: `class`, `struct`, `unmanaged`, `new()`, and interface and base-type constraints, including
   self-referential ones like `where TMessage : IMessage<TResponse>` and ones a message meets through variance, such as
@@ -464,13 +474,15 @@ the mediator, such as a Transient handler under the default Scoped mediator, is 
 cached, wherever it is registered. A Scoped one under a Singleton mediator is rejected, since a Singleton mediator
 resolves from the root provider, where a scoped service would live as long as the process. So is a Transient one whose
 implementation is disposable, since the root provider keeps every disposable instance it creates until it is disposed.
-That check reads the implementation type a registration names:
-`AddTransient<IRequestHandler<Ping, string>, PingHandler>(_ => new PingHandler())` names `PingHandler`, but
-`AddTransient<IRequestHandler<Ping, string>>(_ => new PingHandler())` names only the service, so a disposable handler
-registered that way is not caught. A Scoped or Transient mediator resolves from the provider it was resolved from, so
-resolve it from a scope, as ASP.NET Core does for each request: resolved from the root provider, every disposable
-Transient handler, middleware or publisher it resolves stays with that provider until the provider is disposed, and
-nothing rejects that.
+
+> **Note:** The disposable check reads the implementation type a registration names.
+> `AddTransient<IRequestHandler<Ping, string>, PingHandler>(_ => new PingHandler())` names `PingHandler`, but
+> `AddTransient<IRequestHandler<Ping, string>>(_ => new PingHandler())` names only the service, so a disposable handler
+> registered that way is not caught.
+
+> **Note:** A Scoped or Transient mediator resolves from the provider it was resolved from, so resolve it from a scope,
+> as ASP.NET Core does for each request. Resolved from the root provider, every disposable Transient handler,
+> middleware, or publisher it resolves stays with that provider until the provider is disposed.
 
 `AddMediator` throws at startup when no generator-compiled assembly declares a handler, rather than registering a
 mediator that cannot dispatch anything. A handler registered explicitly that the generator could not see fails the
@@ -587,6 +599,8 @@ services.AddMediator(builder => builder
 services.AddValidators(typeof(Program).Assembly);
 ```
 
+The registration methods are in the `Sharp.Mediator.Validation` namespace, and `AddValidators` is in `Sharp.Validator`.
+
 | Method | Validates | On failure |
 | --- | --- | --- |
 | `AddRequestValidationMiddleware()` | Void `IRequest` messages | Throws `ValidationException` |
@@ -605,8 +619,10 @@ Only `Error`-severity validation entries block dispatch; `Warning` and `Informat
 Sharp.Validator's `ValidationResult`. When an error is present, every recorded entry goes into the
 `ValidationException` or the `Invalid` response.
 
-Validators of one message run one at a time, in registration order, and all of them run. They share the message's DI
-scope, so scoped dependencies such as a `DbContext` are safe to use from several validators.
+Validators of one message run one at a time, in registration order, and all of them run. They are resolved from the
+message's DI scope, so Scoped validators can share scoped dependencies such as a `DbContext`. `AddValidators` registers
+validators as Singletons unless told otherwise: pass `lifetime: ServiceLifetime.Scoped` for validators that take scoped
+dependencies.
 
 ### `Sharp.Mediator.HttpResults`
 
@@ -653,7 +669,7 @@ services nor invokes a forbid scheme.
 
 ## Coming from MediatR
 
-Called through `IMediator`, a warm request runs about 30 to 40 times faster than in MediatR 12.5.0 and allocates
+Called through `IMediator`, a warm request runs about 30 to 50 times faster than in MediatR 12.5.0 and allocates
 nothing (see Performance).
 
 | MediatR | Sharp.Mediator |
@@ -663,11 +679,15 @@ nothing (see Performance).
 | `INotification` / `INotificationHandler<N>` | `IEvent` / `IEventHandler<E>` |
 | `IStreamRequest<T>` | `IStreamRequest<T>`, with a separate middleware chain |
 | `IPipelineBehavior<T, R>` | `IMiddleware<T, R>` for requests with a response, `IMiddleware<T>` for void requests and events |
+| `IStreamPipelineBehavior<T, R>` | `IStreamMiddleware<T, R>` |
 | `INotificationPublisher` | `IEventPublisher`, with `SequentialPublisher` and `ParallelPublisher` included |
 | `NotificationHandlerExecutor` | `EventHandlerExecutor` |
 | `ISender` / `IPublisher` | `IRequester` / `IPublisher` |
 | `mediator.Send(request)` | `mediator.Request(request)` |
 | `mediator.Publish(message)` | `mediator.Publish(message)` |
+| `mediator.CreateStream(request)` | `mediator.RequestStream(request)` |
+| `services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(assembly))` | `services.AddMediator(x => x.AddHandlers(assembly))` |
+| `cfg.AddOpenBehavior(typeof(Behavior<,>))` | `x.AddMiddleware(typeof(Middleware<,>))` |
 
 These behaviors differ:
 
@@ -720,7 +740,7 @@ middleware types for it.
 
 ## Performance
 
-Called through each library's `IMediator`, Sharp.Mediator is 3.5 to 11 times faster than
+Called through each library's `IMediator`, Sharp.Mediator is about 4 to 11 times faster than
 [Mediator](https://github.com/martinothamar/Mediator) and about 17 to 57 times faster than MediatR 12.5.0, the last
 MediatR release under Apache-2.0, in every scenario measured:
 
@@ -765,11 +785,11 @@ numbers.
 - The bundled generator intercepts the generic calls on `IMediator`, so they skip generic virtual dispatch, and a call
   whose message type is known at compile time can be inlined into its caller. Interception is on in every project that
   gets the package, directly or through a project reference or another package, such as a web project over an
-  application layer. A call is left as written when it passes the message of an inferred call by name or as an
-  interface, an abstract class, or a struct, passes a publisher, or sits inside an expression tree, such as a Moq setup,
-  which then still names the mediator's own method. Any other `IMediator` implementation, such as a test double, still
-  receives the original call, and a message that is not exactly its static type takes the same route as without
-  interception.
+  application layer, and compiles C# 11 or later. A call is left as written when it passes the message of an inferred
+  call by name or as an interface, an abstract class, or a struct, passes a publisher, or sits inside an expression
+  tree, such as a Moq setup, which then still names the mediator's own method. Any other `IMediator` implementation,
+  such as a test double, still receives the original call, and a message that is not exactly its static type takes the
+  same route as without interception.
 - The interface-typed `Request<TResponse>(message)`, and `Request(object)`, `Publish(object)`, and
   `RequestStream(object)`, add one lookup by runtime type. The first dispatch of a runtime type creates its route,
   walking its base types if it inherits its handler, and later dispatches find the route directly.

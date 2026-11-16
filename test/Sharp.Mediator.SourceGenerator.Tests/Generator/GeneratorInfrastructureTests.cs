@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Sharp.Mediator.SourceGenerator.Analysis;
 using Sharp.Mediator.SourceGenerator.Generation;
 using Sharp.Mediator.SourceGenerator.Tests.Fixtures;
@@ -60,6 +61,47 @@ public sealed class GeneratorInfrastructureTests
         Assert.Null(run.OutputCompilation.AssemblyName);
         GeneratorTestHarness.AssertCompiles(run);
         Assert.Contains("namespace Sharp.Mediator.Generated.AUnnamedAssembly", GeneratorTestHarness.AllGeneratedText(run));
+    }
+
+    // A project that leaves generated code out of its coverage by these attributes measures any generated type without
+    // them, and nothing calls the constructor of the attribute that places the interceptors.
+    [Fact]
+    public void EveryGeneratedType_IsMarkedAsGeneratedCode()
+    {
+        var run = GeneratorTestHarness.RunGenerator(
+            IncrementalFixtureSource +
+            "public static class Calls { public static ValueTask<int> Call(IMediator mediator) => mediator.Request(new Ping()); }",
+            parseOptions: new CSharpParseOptions(LanguageVersion.Preview)
+                .WithFeatures([new("InterceptorsNamespaces", "Sharp.Mediator.Generated.Interceptors")]));
+
+        GeneratorTestHarness.AssertCompiles(run);
+
+        var types = run.OutputCompilation.SyntaxTrees
+            .Where(static x => x.FilePath.EndsWith(".g.cs", StringComparison.Ordinal))
+            .SelectMany(tree => tree.GetRoot().DescendantNodes().OfType<BaseTypeDeclarationSyntax>()
+                .Select(declaration => run.OutputCompilation.GetSemanticModel(tree).GetDeclaredSymbol(declaration)!))
+            .Where(static x => x.ContainingType is null)
+            .ToList();
+
+        string[] generated =
+            ["GeneratedHandlerRegistrar", "GeneratedMediatorRegistrar", "InterceptsLocationAttribute", "MediatorInterceptors"];
+
+        Assert.Equal(generated, types.Select(static x => x.Name).Order(StringComparer.Ordinal));
+
+        Assert.All(types, static type =>
+        {
+            var attributes = type.GetAttributes().Select(static x => x.AttributeClass?.ToDisplayString()).ToList();
+            Assert.Contains("System.CodeDom.Compiler.GeneratedCodeAttribute", attributes);
+            Assert.Contains("System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute", attributes);
+        });
+
+        // Marked as the other generated types are, the attribute still places the interceptor.
+        var tree = run.OutputCompilation.SyntaxTrees.Single(static x => x.FilePath == "GeneratorFixture.cs");
+        var call = tree.GetRoot().DescendantNodes().OfType<InvocationExpressionSyntax>()
+            .Single(static x => x.Expression is MemberAccessExpressionSyntax { Name.Identifier.ValueText: "Request" });
+
+        var interceptor = run.OutputCompilation.GetSemanticModel(tree).GetInterceptorMethod(call);
+        Assert.Equal("MediatorInterceptors", interceptor?.ContainingType.Name);
     }
 
     [Fact]

@@ -146,11 +146,11 @@ dotnet pack Sharp.Mediator.slnx -c Release --no-build \
 .github/scripts/verify-consumer.sh artifacts/packages
 ```
 
-`verify-packages.sh` fails when a package lacks its library, XML docs, `README.md`, or symbol package, when the core
-package lacks the generator in `analyzers/dotnet/cs` or the interceptor switch in `buildTransitive/`, or when the
-generator ships as a package of its own. `verify-consumer.sh` installs the packed core package into a two-assembly app,
-builds it with warnings as errors, and runs it under the JIT, as a ReadyToRun publish, and with interceptors off. It
-then runs a host that gets the package only through a project reference.
+`verify-packages.sh` fails when a package lacks its library, XML docs, `README.md`, `icon.png`, or symbol package, when
+the core package lacks the generator in `analyzers/dotnet/cs` or the interceptor switch in `buildTransitive/`, or when
+the generator ships as a package of its own. `verify-consumer.sh` installs the packed core package into a two-assembly
+app, builds it with warnings as errors, and runs it under the JIT, as a ReadyToRun publish, and with interceptors off.
+It then runs a host that gets the package only through a project reference.
 
 ## Repository layout
 

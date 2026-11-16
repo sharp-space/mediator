@@ -740,7 +740,7 @@ middleware types for it.
 
 ## Performance
 
-Called through each library's `IMediator`, Sharp.Mediator is about 4 to 11 times faster than
+Called through each library's `IMediator`, Sharp.Mediator is 3.5 to 11 times faster than
 [Mediator](https://github.com/martinothamar/Mediator) and about 17 to 57 times faster than MediatR 12.5.0, the last
 MediatR release under Apache-2.0, in every scenario measured:
 

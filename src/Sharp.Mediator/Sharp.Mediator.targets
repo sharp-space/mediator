@@ -16,9 +16,15 @@
     </ItemGroup>
 
     <!-- A build that skips analyzers would drop the declarations they report as errors without failing, so the generator
-         reports those diagnostics itself there. It decides from the two properties the SDK decides from. -->
+         reports those diagnostics itself there. It decides from the properties the SDK decides from: the two a project
+         sets, and the four behind the builds Visual Studio starts to debug or run tests. Not from the SDK's own result,
+         which it may compute after the .editorconfig is written. -->
     <ItemGroup>
         <CompilerVisibleProperty Include="RunAnalyzers" />
         <CompilerVisibleProperty Include="RunAnalyzersDuringBuild" />
+        <CompilerVisibleProperty Include="IsImplicitlyTriggeredBuild" />
+        <CompilerVisibleProperty Include="UsingMicrosoftNETSdk" />
+        <CompilerVisibleProperty Include="OptimizeImplicitlyTriggeredBuild" />
+        <CompilerVisibleProperty Include="TreatWarningsAsErrors" />
     </ItemGroup>
 </Project>

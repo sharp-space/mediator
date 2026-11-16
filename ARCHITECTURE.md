@@ -87,14 +87,18 @@ inside the `Sharp.Mediator` package's analyzer slot. `Generator.cs` owns the inc
 these checks to exclude unsupported inputs independently of diagnostic suppression. `Analyzer.cs`
 reports the existing `SMD` diagnostics against the current source trees, from one analysis of the compilation. Source
 emission reports no user diagnostics, so diagnostic locations do not invalidate its cache. Only a build that skips
-analyzers, as `RunAnalyzers=false` or `RunAnalyzersDuringBuild=false` does, gets the same diagnostics from a separate
-implementation output of the generator, so a declaration left out for an error still fails the build.
-`Sharp.Mediator.targets` makes the two properties visible to it, and the IDE, whose live analysis runs the analyzers,
-runs no implementation output. A project that references the generator without importing those targets, as a bare
+analyzers gets the same diagnostics from a separate implementation output of the generator, so a declaration left out
+for an error still fails the build. The generator copies the SDK's rule for skipping them, from `_ComputeSkipAnalyzers`
+in `Microsoft.Managed.Core.targets`, and has to follow it when the SDK changes it: `RunAnalyzers=false`,
+`RunAnalyzersDuringBuild=false`, or a build Visual Studio starts to debug or run tests, unless warnings are errors.
+`Sharp.Mediator.targets` makes the properties behind that rule visible to it, rather than the SDK's own result, which the
+SDK may compute after the generated .editorconfig is written. The IDE, whose live analysis runs the analyzers, runs no
+implementation output. A project that references the generator without importing those targets, as a bare
 `ProjectReference` can, never sees the properties, so the generator reports nothing there; a package consumer gets them
-through `buildTransitive`. The builds Visual Studio starts to debug or run tests skip analyzers by a third rule, unless
-warnings are errors, and the generator does not follow it: following it would make every switch between such a build
-and an ordinary one recompile the project, and those builds ship nothing while the editor shows the same diagnostics.
+through `buildTransitive`. Whether a build is implicitly triggered reaches the .editorconfig, a compiler input, so a
+project recompiles when it switches between such a build and an ordinary one, even one that treats warnings as errors
+and runs analyzers in both. Only a project that MSBuild builds anyway pays for it: Visual Studio's up-to-date check
+starts no build for a project that has not changed.
 `DiagnosticDescriptors`, in `Analyzer.cs`, owns the descriptors; `Properties/AnalyzerReleases.*.md` tracks their IDs.
 
 ### Tests

@@ -6,9 +6,8 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Sharp.Mediator.Bindings;
 
 /// <summary>
-/// Hook through which source-generated code describes its compilation. Generated code calls <see cref="AddAssembly" /> from a
-/// <c>[ModuleInitializer]</c>; <see cref="MediatorServiceCollectionExtensions.AddMediator" /> reads the result through
-/// <see cref="MediatorRegistration" />.
+/// Hook through which source-generated code describes its compilation. Generated code calls <see cref="AddAssembly" /> from a <c>[ModuleInitializer]</c>;
+/// <see cref="MediatorServiceCollectionExtensions.AddMediator" /> reads the result through <see cref="MediatorRegistration" />.
 /// </summary>
 /// <remarks>
 /// Contributions accumulate so handlers generated into any number of assemblies all count. The registry is process-lifetime and retains their delegates;

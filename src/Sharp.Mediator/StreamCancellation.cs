@@ -54,9 +54,9 @@ internal static class StreamCancellation
         CancellationToken cancellationToken
     ) where TRequest : IStreamRequest<TResponse> =>
         // A chain with middleware starts with a Step, and its End has wrapped the handler's stream already: what
-        // returns here is a middleware's stream, which honors the token itself. Any other chain is the handler's own
-        // method. A test of the exact Step type costs a comparison, where one of the handler's interface calls a
-        // cast helper.
+        // returns here is a middleware's stream, which honors the token itself. Any other chain is the handler's
+        // own method. A test of the exact Step type costs a comparison, where one of the handler's interface calls
+        // a cast helper.
         chain.Target is Step<TRequest, TResponse> ? stream : new CallTokenStream<TResponse>(stream, cancellationToken);
 
     private sealed class Step<TRequest, TResponse>(

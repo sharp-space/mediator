@@ -71,6 +71,10 @@ internal static partial class Emitter
         stringBuilder.AppendLine("#pragma warning disable");
         stringBuilder.AppendLine("namespace System.Runtime.CompilerServices");
         stringBuilder.AppendLine("{");
+
+        // Coverage tools leave generated code out by these attributes; without them, they count this constructor,
+        // which nothing calls, in every project that gets interceptors.
+        AppendGeneratedCodeAttributes(stringBuilder, "    ");
         stringBuilder.AppendLine("    [global::System.AttributeUsage(global::System.AttributeTargets.Method, AllowMultiple = true)]");
         stringBuilder.AppendLine("    file sealed class InterceptsLocationAttribute : global::System.Attribute");
         stringBuilder.AppendLine("    {");

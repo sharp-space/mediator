@@ -69,12 +69,6 @@ dotnet add package Sharp.Mediator.Validation    # optional
 dotnet add package Sharp.Mediator.HttpResults   # optional, for ASP.NET Core
 ```
 
-Outside ASP.NET Core, the Quick start also needs the DI container:
-
-```bash
-dotnet add package Microsoft.Extensions.DependencyInjection
-```
-
 Requires .NET 10 or later. Handlers must be written in C#, because the bundled source generator registers them.
 Package versions follow Semantic Versioning independently of .NET releases, starting at 1.0.0. Patch releases fix
 bugs; minor releases add backward-compatible features; major releases introduce breaking changes or raise minimum
@@ -84,28 +78,42 @@ Messenger release independently. The minimum supported runtime remains .NET 10. 
 
 ## Quick start
 
+In an ASP.NET Core app, with `Sharp.Mediator.HttpResults` turning the handler's response into an HTTP result:
+
 ```csharp
-// Register the mediator and the handler.
-var services = new ServiceCollection();
-services.AddMediator(x => x.AddHandler<PingHandler>());
+using Sharp.Mediator;
+using Sharp.Mediator.HttpResults;
+using Sharp.Mediator.Responses;
 
-// Dispatch a request in a scope.
-using var serviceProvider = services.BuildServiceProvider();
-using var scope = serviceProvider.CreateScope();
-var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddMediator(x => x.AddHandlers(typeof(Program).Assembly));
 
-var reply = await mediator.Request(new Ping("world"));
-Console.WriteLine(reply); // hello, world
+var app = builder.Build();
+
+// Send the request and turn its Response<User> into an HTTP result.
+app.MapGet("/users/{id}", (int id, IMediator mediator) =>
+    mediator.Request(new GetUser(id)).ToResult());
+
+// GET /users/1 → 200 {"id":1,"name":"Ada"}
+// GET /users/2 → 404
+
+app.Run();
 
 // A request and its handler.
-public record Ping(string Name) : IRequest<string>;
+public record GetUser(int Id) : IRequest<Response<User>>;
 
-public class PingHandler : IRequestHandler<Ping, string>
+public record User(int Id, string Name);
+
+public class GetUserHandler : IRequestHandler<GetUser, Response<User>>
 {
-    public ValueTask<string> Handle(Ping message, CancellationToken cancellationToken) =>
-        ValueTask.FromResult($"hello, {message.Name}");
+    public ValueTask<Response<User>> Handle(GetUser message, CancellationToken cancellationToken) =>
+        message.Id == 1 ? new(new User(1, "Ada")) : new(Responses.NotFound());
 }
 ```
+
+ASP.NET Core resolves the mediator from each request's scope. A handler can also return a plain value, as in Requests,
+and the response statuses and their HTTP mapping are in Companion packages. Elsewhere, such as in a worker or a console
+app, call `AddMediator` on any `IServiceCollection` and resolve `IMediator` from a scope (see Registration).
 
 > **Note:** Handlers return `ValueTask` and `ValueTask<T>`, not `Task`, so a synchronously completed request or publish
 > allocates nothing. Await the returned value exactly once: don't store it and await it twice, and call `.AsTask()`
